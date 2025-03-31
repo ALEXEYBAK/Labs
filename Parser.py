@@ -4,7 +4,7 @@ import CompGraphics as gc
 import random
 #Моделька
 f = open("model_1.obj")
-
+tz = 0.1
 vectorv = []
 vectorf = []
 for line in f:
@@ -22,7 +22,7 @@ img_mat2 = np.zeros(shape=(2000, 2000, 3), dtype=np.uint8)
 color = (255,255,255)
 
 def rotate_image(vertices, angle_x_degrees, angle_y_degrees, angle_z_degrees):
-    tx, ty, tz = 0, -0.05,0
+    tx, ty = 0, -0.05
     angle_x_radians = np.radians(angle_x_degrees)
     angle_y_radians = np.radians(angle_y_degrees)
     angle_z_radians = np.radians(angle_z_degrees)
@@ -50,28 +50,39 @@ def rotate_image(vertices, angle_x_degrees, angle_y_degrees, angle_z_degrees):
         rotated_vertices.append(rotated_vertex.tolist())
     return rotated_vertices
 
-angle_x = 0
-angle_y = 200
+angle_x = -15
+angle_y = 215
 angle_z = 0
 vectorv = rotate_image(vectorv,angle_x,angle_y,angle_z)
 
-def bar_coordinates(proj_x,proj_y,proj_x0,proj_y0,proj_x1,proj_y1,proj_x2,proj_y2):
-    lambda0 = ((proj_x - proj_x2) * (proj_y1 - proj_y2) - (proj_x1 - proj_x2) * (proj_y - proj_y2)) / ((proj_x0 - proj_x2) * (proj_y1 - proj_y2) - (proj_x1 - proj_x2) * (proj_y0 - proj_y2))
-    lambda1 = ((proj_x0 - proj_x2) * (proj_y - proj_y2) - (proj_x - proj_x2) * (proj_y0 - proj_y2)) / ((proj_x0 - proj_x2) * (proj_y1 - proj_y2) - (proj_x1 - proj_x2) * (proj_y0 - proj_y2))
+# def bar_coordinates(proj_x,proj_y,proj_x0,proj_y0,proj_x1,proj_y1,proj_x2,proj_y2):
+#     lambda0 = ((proj_x - proj_x2) * (proj_y1 - proj_y2) - (proj_x1 - proj_x2) * (proj_y - proj_y2)) / ((proj_x0 - proj_x2) * (proj_y1 - proj_y2) - (proj_x1 - proj_x2) * (proj_y0 - proj_y2))
+#     lambda1 = ((proj_x0 - proj_x2) * (proj_y - proj_y2) - (proj_x - proj_x2) * (proj_y0 - proj_y2)) / ((proj_x0 - proj_x2) * (proj_y1 - proj_y2) - (proj_x1 - proj_x2) * (proj_y0 - proj_y2))
+#     lambda2 = 1.0 - lambda0 - lambda1
+#     return lambda0,lambda1,lambda2
+def bar_coordinates(proj_x, proj_y, proj_x0, proj_y0, proj_x1, proj_y1, proj_x2, proj_y2):
+    denom = ((proj_x0 - proj_x2) * (proj_y1 - proj_y2) - (proj_x1 - proj_x2) * (proj_y0 - proj_y2))
+    if abs(denom) < 1e-6:
+        return -1, -1, -1  # Вернуть значения, указывающие на то, что точка вне треугольника
+
+    lambda0 = ((proj_x - proj_x2) * (proj_y1 - proj_y2) - (proj_x1 - proj_x2) * (proj_y - proj_y2)) / denom
+    lambda1 = ((proj_x0 - proj_x2) * (proj_y - proj_y2) - (proj_x - proj_x2) * (proj_y0 - proj_y2)) / denom
     lambda2 = 1.0 - lambda0 - lambda1
-    return lambda0,lambda1,lambda2
+    return lambda0, lambda1, lambda2
 
 def rendering(x1,y1 ,z1,x2,y2,z2,x3,y3,z3,cos):
     
     height, width = 2000,2000
-    proj_x1 = x1*10000 + 1000;
-    proj_y1 = y1*10000 + 1000;
+    ax = 10000
+    a = ax*tz
+    proj_x1 = x1*a/z1 + 1000;
+    proj_y1 = y1*a/z1 + 1000;
     
-    proj_x2 = x2*10000 + 1000;
-    proj_y2 = y2*10000 + 1000;
+    proj_x2 = x2*a/z2 + 1000;
+    proj_y2 = y2*a/z2 + 1000;
     
-    proj_x3 = x3*10000 + 1000;
-    proj_y3 = y3*10000 + 1000;
+    proj_x3 = x3*a/z3 + 1000;
+    proj_y3 = y3*a/z3 + 1000;
     
     # Определение ограничивающего прямоугольника
     xmin = max(0, int(min(proj_x3, proj_x1, proj_x2)))
@@ -80,7 +91,7 @@ def rendering(x1,y1 ,z1,x2,y2,z2,x3,y3,z3,cos):
     ymax = min(height, int(max(proj_y3, proj_y1, proj_y2))+1)
     # color = (random.randint(0,255),random.randint(0,255),random.randint(0,255))
     
-    if(((proj_x1 - proj_x3) * (proj_y2 - proj_y3) - (proj_x2 - proj_x3) * (proj_y1 - proj_y3))==0):
+    if(((proj_x1 - proj_x3) * (proj_y2 - proj_y3) - (proj_x2 - proj_x3) * (proj_y1 - proj_y3))==0.0):
         return
     else:
         color = (-255*cos,-255*cos,-255*cos)
@@ -102,22 +113,20 @@ def calc_svet(proj_x0, proj_y0, proj_z0, proj_x1, proj_y1, proj_z1, proj_x2, pro
     l = [0, 0, 1]
     n = normal(proj_x0, proj_y0, proj_z0, proj_x1, proj_y1, proj_z1, proj_x2, proj_y2, proj_z2)
     norm_n = np.linalg.norm(n)
-    if norm_n < 1e-6: 
-        return 0  
     norm_l = np.linalg.norm(l)
     return np.dot(n, l) / (norm_n * norm_l)
 
 z_buffer = np.full((2000, 2000), float('inf'))  # Инициализация z-буфера
 for i in range(0,len(vectorf)):
-    x0 = (vectorv[vectorf[i][0]-1][0])
-    y0 = (vectorv[vectorf[i][0]-1][1])
-    z0 = (vectorv[vectorf[i][0]-1][2])
-    x1 = (vectorv[vectorf[i][1]-1][0])
-    y1 = (vectorv[vectorf[i][1]-1][1])
-    z1 = (vectorv[vectorf[i][1]-1][2])
-    x2 = (vectorv[vectorf[i][2]-1][0])
-    y2 = (vectorv[vectorf[i][2]-1][1])
-    z2 = (vectorv[vectorf[i][2]-1][2])
+    x0 = vectorv[vectorf[i][0]-1][0]
+    y0 = vectorv[vectorf[i][0]-1][1]
+    z0 = vectorv[vectorf[i][0]-1][2]
+    x1 = vectorv[vectorf[i][1]-1][0]
+    y1 = vectorv[vectorf[i][1]-1][1]
+    z1 = vectorv[vectorf[i][1]-1][2]
+    x2 = vectorv[vectorf[i][2]-1][0]
+    y2 = vectorv[vectorf[i][2]-1][1]
+    z2 = vectorv[vectorf[i][2]-1][2]
     # gc.bresanham(img_mat2, x0, y0, x1, y1, color)
     # gc.bresanham(img_mat2, x1, y1, x2, y2, color)
     # gc.bresanham(img_mat2, x0, y0, x2, y2, color)
@@ -129,10 +138,8 @@ for i in range(0,len(vectorf)):
                 cos)
 
 
-
-
 # for fl in vectorv:
 #     img_mat2[round(fl[1]*5000) + 250, round(fl[0]*5000)+ 500] = (255, 255, 255)
 img = Image.fromarray(img_mat2, mode="RGB")
 img = ImageOps.flip(img)
-img.save("img.jpg")
+img.save("img1.jpg")
