@@ -99,7 +99,8 @@ def rendering(x1,y1 ,z1,x2,y2,z2,x3,y3,z3,I_0,I_1,I_2):
                         color = -225*(alpha*I_0 + beta*I_1 + gamma*I_2)
                         # print(color);
                         z_buffer[y, x] = alpha*z1 + beta*z2 +gamma*z3
-                        img_mat2[y, x] = color
+                        if (color>0):
+                            img_mat2[y, x] = color
 
 normals = np.zeros((len(vectorv), 3))
 def normal(proj_x0,proj_y0,proj_z0,proj_x1,proj_y1,proj_z1,proj_x2,proj_y2,proj_z2,face_index):
