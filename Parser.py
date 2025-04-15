@@ -17,6 +17,7 @@ for line in f:
         v3 = v[3].split('/')[0]
         vectorf.append([int(v1), int(v2), int(v3)])
 
+
 #Соединить все вершины треугольника, нарисовать хранится в виде: (x1, x2, x3)(y1,y2,y3)(z1,z2,z3)
 img_mat2 = np.zeros(shape=(2000, 2000, 3), dtype=np.uint8)
 color = (255,255,255)
@@ -55,11 +56,6 @@ angle_y = 215
 angle_z = 0
 vectorv = rotate_image(vectorv,angle_x,angle_y,angle_z)
 
-# def bar_coordinates(proj_x,proj_y,proj_x0,proj_y0,proj_x1,proj_y1,proj_x2,proj_y2):
-#     lambda0 = ((proj_x - proj_x2) * (proj_y1 - proj_y2) - (proj_x1 - proj_x2) * (proj_y - proj_y2)) / ((proj_x0 - proj_x2) * (proj_y1 - proj_y2) - (proj_x1 - proj_x2) * (proj_y0 - proj_y2))
-#     lambda1 = ((proj_x0 - proj_x2) * (proj_y - proj_y2) - (proj_x - proj_x2) * (proj_y0 - proj_y2)) / ((proj_x0 - proj_x2) * (proj_y1 - proj_y2) - (proj_x1 - proj_x2) * (proj_y0 - proj_y2))
-#     lambda2 = 1.0 - lambda0 - lambda1
-#     return lambda0,lambda1,lambda2
 def bar_coordinates(proj_x, proj_y, proj_x0, proj_y0, proj_x1, proj_y1, proj_x2, proj_y2):
     denom = ((proj_x0 - proj_x2) * (proj_y1 - proj_y2) - (proj_x1 - proj_x2) * (proj_y0 - proj_y2))
     if abs(denom) < 1e-6:
@@ -94,30 +90,50 @@ def rendering(x1,y1 ,z1,x2,y2,z2,x3,y3,z3,I_0,I_1,I_2):
     if(((proj_x1 - proj_x3) * (proj_y2 - proj_y3) - (proj_x2 - proj_x3) * (proj_y1 - proj_y3))==0.0):
         return
     else:
-        color = (-255*cos,-255*cos,-255*cos)
+        # color = (-255*cos,-255*cos,-255*cos)
         for x in range(xmin, xmax):
             for y in range(ymin, ymax):
                 alpha, beta, gamma = bar_coordinates(x, y,proj_x1,proj_y1,proj_x2,proj_y2,proj_x3,proj_y3)
                 if ((alpha >= 0) and (beta >= 0) and (gamma >= 0)):
                     if (alpha*z1 + beta*z2 +gamma*z3) < z_buffer[y, x]:
-                        color = alpha*I_0 + beta*I_1 + gamma*I_2
-                        
+                        color = -225*(alpha*I_0 + beta*I_1 + gamma*I_2)
+                        # print(color);
                         z_buffer[y, x] = alpha*z1 + beta*z2 +gamma*z3
                         img_mat2[y, x] = color
-                        
 
 normals = np.zeros((len(vectorv), 3))
 def normal(proj_x0,proj_y0,proj_z0,proj_x1,proj_y1,proj_z1,proj_x2,proj_y2,proj_z2,face_index):
     v1=np.array([proj_x1-proj_x2,proj_y1-proj_y2,proj_z1-proj_z2])
     v2=-np.array([proj_x0-proj_x1,proj_y0-proj_y1,proj_z0-proj_z1])
     n = np.cross(v1,v2)
-    n_temp = n/np.linalg.norm(n)
+    n_temp = n
+    
     normals[vectorf[face_index][0] - 1] += n_temp
+    
     normals[vectorf[face_index][1] - 1] += n_temp
+    
+    
     normals[vectorf[face_index][2] - 1] += n_temp
+    
     return n
 
 z_buffer = np.full((2000, 2000), float('inf'))  # Инициализация z-буфера
+
+for i in range(0,len(vectorf)):
+    x0 = vectorv[vectorf[i][0]-1][0]
+    y0 = vectorv[vectorf[i][0]-1][1]
+    z0 = vectorv[vectorf[i][0]-1][2]
+    x1 = vectorv[vectorf[i][1]-1][0]
+    y1 = vectorv[vectorf[i][1]-1][1]
+    z1 = vectorv[vectorf[i][1]-1][2]
+    x2 = vectorv[vectorf[i][2]-1][0]
+    y2 = vectorv[vectorf[i][2]-1][1]
+    z2 = vectorv[vectorf[i][2]-1][2]
+    n = normal(x0, y0, z0, x1, y1, z1,x2, y2, z2, i)
+
+for i in range(0,len(normals)):
+    normals[i] = normals[i]/np.linalg.norm(normals[i])
+
 for i in range(0,len(vectorf)):
     x0 = vectorv[vectorf[i][0]-1][0]
     y0 = vectorv[vectorf[i][0]-1][1]
@@ -129,10 +145,13 @@ for i in range(0,len(vectorf)):
     y2 = vectorv[vectorf[i][2]-1][1]
     z2 = vectorv[vectorf[i][2]-1][2]
     l = [0, 0, 1]
-    n = normal(x0, y0, z0, x1, y1, z1,x2, y2, z2, i)
+    v1=np.array([x1-x2,y1-y2,z1-z2])
+    v2=-np.array([x0-x1,y0-y1,z0-z1])
+    n = np.cross(v1,v2)
     norm_n = np.linalg.norm(n)
     norm_l = np.linalg.norm(l)
     cos = np.dot(n, l) / (norm_n * norm_l)
+    
     I_0 = normals[vectorf[i][0] - 1][2]
     I_1 = normals[vectorf[i][1] - 1][2]
     I_2 = normals[vectorf[i][2] - 1][2]
