@@ -4,7 +4,7 @@ import CompGraphics as gc
 import random
 #Моделька
 f = open("model_1.obj")
-tz = 0.5
+tz = 0.1
 vectorv = []
 vectorf = []
 vectorvt = []
@@ -61,8 +61,8 @@ def rotate_image(vertices, angle_x_degrees, angle_y_degrees, angle_z_degrees):
         rotated_vertex = rotated_vertex + np.array([tx, ty, tz]) 
         rotated_vertices.append(rotated_vertex.tolist())
     return rotated_vertices
-angle_x = 0
-angle_y = 90
+angle_x = -15
+angle_y = 265
 angle_z = 0
 vectorv = rotate_image(vectorv,angle_x,angle_y,angle_z)
 
@@ -107,16 +107,19 @@ def rendering(x1,y1 ,z1,x2,y2,z2,x3,y3,z3,I_0,I_1,I_2, vt0, vt1,vt2):
                 if ((alpha >= 0) and (beta >= 0) and (gamma >= 0)):
                     if (alpha*z1 + beta*z2 +gamma*z3) < z_buffer[y, x]:
                         # Текстурирование
-                        z_buffer[y, x] = alpha*z1 + beta*z2 +gamma*z3
+                        
                         u = alpha * vt0[0] + beta * vt1[0] + gamma * vt2[0]
                         v = alpha * vt0[1] + beta * vt1[1] + gamma * vt2[1]
                         
                         tex_x = int(u * wt)
                         tex_y = int(v * ht) 
                         color = texture_matrix[tex_y, tex_x]
-                        
+                        z_buffer[y, x] = alpha*z1 + beta*z2 +gamma*z3
                         I = -(alpha*I_0 + beta*I_1 + gamma*I_2)
+                        if I < 0:
+                            continue
                         img_mat2[y, x] = color*I
+                        
                         # color = -225*(alpha*I_0 + beta*I_1 + gamma*I_2)
                         # # print(color);
                         # z_buffer[y, x] = alpha*z1 + beta*z2 +gamma*z3
@@ -126,9 +129,9 @@ def rendering(x1,y1 ,z1,x2,y2,z2,x3,y3,z3,I_0,I_1,I_2, vt0, vt1,vt2):
 normals = np.zeros((len(vectorv), 3))
 def normal(proj_x0,proj_y0,proj_z0,proj_x1,proj_y1,proj_z1,proj_x2,proj_y2,proj_z2,face_index):
     v1=np.array([proj_x1-proj_x2,proj_y1-proj_y2,proj_z1-proj_z2])
-    v2=-np.array([proj_x0-proj_x1,proj_y0-proj_y1,proj_z0-proj_z1])
+    v2=np.array([proj_x0-proj_x1,proj_y0-proj_y1,proj_z0-proj_z1])
     n = -np.cross(v1,v2)
-    n_temp = n
+    n_temp = n/np.linalg.norm(n)
     
     normals[vectorf[face_index][0] - 1] += n_temp
     
@@ -166,7 +169,7 @@ for i in range(0,len(vectorf)):
     z2 = vectorv[vectorf[i][2]-1][2]
     l = [0, 0, 1]
     v1=np.array([x1-x2,y1-y2,z1-z2])
-    v2=-np.array([x0-x1,y0-y1,z0-z1])
+    v2=np.array([x0-x1,y0-y1,z0-z1])
     n = -np.cross(v1,v2)
     norm_n = np.linalg.norm(n)
     norm_l = np.linalg.norm(l)
